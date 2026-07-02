@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Spot It! Tricky Words</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Andika:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2b2b2b;
+    --paper:#FFFDF8;
+    --accent:#FF0100;
+    --accent-dark:#940100;
+    --panel:#FFE6E6;
+    --green:#0F6E56;
+    --shadow: 0 10px 26px rgba(0,0,0,0.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 8% 12%, rgba(255,255,255,0.6), transparent 40%),
+      var(--paper);
+    font-family: 'Baloo 2', system-ui, sans-serif;
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 18px 14px 40px;
+  }
+  .wordfont{ font-family:'Andika','Comic Sans MS','Comic Sans',cursive; }
+
+  /* ---------- header ---------- */
+  .app-title{
+    font-weight:800;
+    font-size: clamp(28px, 6vw, 46px);
+    color:var(--accent);
+    margin: 6px 0 0;
+    letter-spacing: 0.5px;
+  }
+  .app-sub{
+    font-weight:500;
+    color:#6a6a6a;
+    margin: 2px 0 22px;
+    font-size: clamp(13px, 2.6vw, 16px);
+  }
+
+  /* ---------- set picker ---------- */
+  #picker{
+    width:100%;
+    max-width: 900px;
+  }
+  .set-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 14px;
+  }
+  .set-card{
+    border:none;
+    border-radius: 18px;
+    padding: 16px 10px 14px;
+    cursor:pointer;
+    color:#fff;
+    text-align:center;
+    box-shadow: var(--shadow);
+    transition: transform .12s ease;
+    font-family:inherit;
+  }
+  .set-card:hover{ transform: translateY(-3px) scale(1.02); }
+  .set-card:active{ transform: translateY(0) scale(0.98); }
+  .set-card .num{
+    font-weight:800;
+    font-size: 26px;
+    display:block;
+  }
+  .set-card .label{
+    font-weight:500;
+    font-size: 13px;
+    opacity:0.95;
+    display:block;
+    margin-top:2px;
+  }
+  .set-card .preview{
+    margin-top:8px;
+    font-family:'Andika','Comic Sans MS','Comic Sans',cursive;
+    font-size: 15px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 10px;
+    padding: 4px 2px;
+  }
+
+  /* ---------- game screen ---------- */
+  #game{ width:100%; max-width: 760px; display:none; }
+  #game.side-layout{ max-width: 1100px; }
+  .hud{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .hud-stat{
+    background:#fff;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 8px 16px;
+    font-weight:700;
+    font-size: 15px;
+    min-width: 84px;
+    text-align:center;
+  }
+  .hud-stat span{ display:block; font-size:11px; font-weight:500; color:#888; }
+  .btn{
+    border:none;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-family:inherit;
+    font-weight:700;
+    font-size: 14px;
+    cursor:pointer;
+    box-shadow: var(--shadow);
+  }
+  .btn-ghost{ background:#fff; color:#555; }
+  .btn-accent{ background:var(--accent); color:#fff; }
+
+  .board{
+    display:flex;
+    flex-direction:column;
+    gap: 18px;
+  }
+  .board.side-by-side{
+    flex-direction:row;
+    align-items:flex-start;
+    gap: 22px;
+  }
+  .board-col{
+    flex:1;
+    min-width:0;
+  }
+
+  .table-label, .yours-label{
+    text-align:center;
+    font-weight:700;
+    color:#999;
+    font-size: 13px;
+    text-transform:uppercase;
+    letter-spacing: 1.5px;
+    margin: 0 0 8px;
+  }
+
+  .card{
+    background:#fff;
+    border-radius: 26px;
+    border: 10px solid var(--accent);
+    box-shadow: var(--shadow);
+    aspect-ratio: 4 / 3;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 2px;
+    padding: 4px;
+    position:relative;
+  }
+  #tableCard, #yourCard{}
+  .word-cell{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    padding: 2px;
+  }
+  .word{
+    font-family:'Andika','Comic Sans MS','Comic Sans',cursive;
+    font-weight:700;
+    line-height:1;
+    white-space:nowrap;
+    user-select:none;
+  }
+  #tableCard .word{ color: var(--ink); }
+  #tableCard .word.tricky{ color: var(--accent-dark); }
+  #tableCard .word.decodable{ color: var(--green); }
+
+  #yourCard .word-cell{ cursor:pointer; }
+  #yourCard .word{
+    background:none;
+    border:none;
+    padding: 4px;
+    border-radius: 10px;
+    transition: transform .08s ease, background .12s ease;
+  }
+  #yourCard .word.tricky{ color: var(--accent-dark); }
+  #yourCard .word.decodable{ color: var(--green); }
+  #yourCard .word-cell:hover .word{ transform: scale(1.06); }
+  #yourCard .word-cell.wrong .word{ background:#FFD3D3; }
+  #yourCard .word-cell.correct .word{ background:#CFF3E2; }
+
+  /* ---------- end screen ---------- */
+  #endScreen{
+    display:none;
+    text-align:center;
+    background:#fff;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    padding: 30px 26px;
+    max-width: 480px;
+  }
+  #endScreen h2{ color:var(--accent); margin: 0 0 6px; font-size: 28px; }
+  #endScreen p{ color:#666; margin: 4px 0 18px; }
+  .end-stats{ display:flex; gap:14px; justify-content:center; margin-bottom: 22px; }
+
+  .top-links{ margin-bottom: 10px; }
+
+  /* ---------- word list modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0;
+    background: rgba(20,20,20,0.45);
+    display:flex; align-items:center; justify-content:center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .modal-panel{
+    background:#fff;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    padding: 28px 26px 24px;
+    max-width: 460px;
+    width:100%;
+    max-height: 86vh;
+    overflow-y:auto;
+    position:relative;
+    text-align:center;
+  }
+  .modal-close{
+    position:absolute; top:12px; right:14px;
+    border:none; background:none;
+    font-size: 26px; line-height:1; color:#999;
+    cursor:pointer;
+  }
+  .modal-panel h2{ margin: 0 0 16px; color:var(--accent); font-size:24px; }
+  .modal-cols{ display:flex; gap:16px; text-align:left; }
+  .modal-col{ flex:1; min-width:0; }
+  .modal-col-title{
+    font-weight:700; font-size:14px; text-transform:uppercase;
+    letter-spacing:1px; margin-bottom:8px; color:var(--accent-dark);
+  }
+  .modal-word-list{
+    font-family:'Andika','Comic Sans MS','Comic Sans',cursive;
+    font-size: 19px;
+    line-height: 1.7;
+  }
+  .set-card .wordlist-link{
+    display:block;
+    margin-top:6px;
+    background:none;
+    border:none;
+    color:#fff;
+    text-decoration: underline;
+    font-family:inherit;
+    font-size: 11px;
+    opacity:0.85;
+    cursor:pointer;
+    padding: 2px 0;
+  }
+
+  @media (max-width: 480px){
+    .card{ border-width: 7px; border-radius: 18px; }
+  }
+  @media (max-width: 640px){
+    .board.side-by-side{ flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-links" id="topLinks" style="display:none;">
+  <button class="btn btn-ghost" id="backBtn">&larr; Choose a set</button>
+</div>
+
+<h1 class="app-title">Spot It!</h1>
+<p class="app-sub">Tricky Words &mdash; tap the word that matches the card above</p>
+
+<div id="picker">
+  <div class="set-grid" id="setGrid"></div>
+</div>
+
+<div id="wordListModal" class="modal-overlay" style="display:none;">
+  <div class="modal-panel">
+    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    <h2 id="modalTitle">Set word list</h2>
+    <div class="modal-cols">
+      <div class="modal-col">
+        <div class="modal-col-title" id="modalTrickyTitle">Tricky words</div>
+        <div class="modal-word-list" id="modalTrickyList"></div>
+      </div>
+      <div class="modal-col">
+        <div class="modal-col-title" style="color:var(--green);">Decodable words</div>
+        <div class="modal-word-list" id="modalDecodableList"></div>
+      </div>
+    </div>
+    <button class="btn btn-accent" id="modalPlayBtn" style="margin-top:18px;">Play this set</button>
+  </div>
+</div>
+
+<div id="game">
+  <div class="hud">
+    <div class="hud-stat"><span>Time</span><span id="timeStat">0:00</span></div>
+    <div class="hud-stat"><span>Cards left</span><span id="leftStat">0</span></div>
+    <div class="hud-stat"><span>Mistakes</span><span id="missStat">0</span></div>
+    <button class="btn btn-ghost" id="layoutBtn" title="Switch layout">⬍ Stacked</button>
+    <button class="btn btn-ghost" id="speechBtn" title="Toggle read-aloud on hover">🗣️ Read words</button>
+    <button class="btn btn-ghost" id="soundBtn" title="Toggle sound">🔊 Sound</button>
+  </div>
+
+  <div class="board" id="board">
+    <div class="board-col">
+      <div class="table-label">On the table</div>
+      <div class="card" id="tableCard"></div>
+    </div>
+    <div class="board-col">
+      <div class="yours-label">Your card &mdash; tap the match!</div>
+      <div class="card" id="yourCard"></div>
+    </div>
+  </div>
+</div>
+
+<div id="endScreen">
+  <h2>All done! 🎉</h2>
+  <p id="endMsg"></p>
+  <div class="end-stats">
+    <div class="hud-stat"><span>Time</span><span id="endTime">0:00</span></div>
+    <div class="hud-stat"><span>Mistakes</span><span id="endMiss">0</span></div>
+  </div>
+  <button class="btn btn-accent" id="playAgainBtn">Play again</button>
+  <button class="btn btn-ghost" id="chooseAnotherBtn" style="margin-left:8px;">Choose another set</button>
+</div>
+
+<script>
+const SETS = [{"num": 1, "name": "Red", "hex": "#FF0100", "textDark": "#940100", "panelTint": "#FFE6E6", "sounds": "i, m, s, t, a, f, r", "trickyWords": ["I", "the", "my", "a", "is"], "decodableWords": ["am", "at", "if", "it", "rat", "sat", "fit", "fat"], "cards": [["I", "the", "my", "fat"], ["a", "is", "am", "fat"], ["at", "if", "it", "fat"], ["I", "a", "at", "rat"], ["the", "is", "if", "rat"], ["my", "am", "it", "rat"], ["I", "is", "it", "sat"], ["the", "am", "at", "sat"], ["my", "a", "if", "sat"], ["I", "am", "if", "fit"], ["the", "a", "it", "fit"], ["my", "is", "at", "fit"], ["rat", "sat", "fit", "fat"]]}, {"num": 2, "name": "Cyan", "hex": "#74ECFF", "textDark": "#346A73", "panelTint": "#F1FDFF", "sounds": "o, c, d, h, e, n, g, l", "trickyWords": ["the", "my", "that", "was", "to", "you", "they"], "decodableWords": ["stop", "from", "him", "did", "can", "and"], "cards": [["the", "my", "that", "and"], ["was", "to", "you", "and"], ["they", "stop", "from", "and"], ["the", "was", "they", "him"], ["my", "to", "stop", "him"], ["that", "you", "from", "him"], ["the", "to", "from", "did"], ["my", "you", "they", "did"], ["that", "was", "stop", "did"], ["the", "you", "stop", "can"], ["my", "was", "from", "can"], ["that", "to", "they", "can"], ["him", "did", "can", "and"]]}, {"num": 3, "name": "Green", "hex": "#00B050", "textDark": "#00662E", "panelTint": "#E6F7EE", "sounds": "o, c, d, h, e, n, g, l", "trickyWords": ["said", "are", "she", "me", "be", "he", "we"], "decodableWords": ["did", "on", "and", "got", "get", "let"], "cards": [["said", "are", "she", "let"], ["me", "be", "he", "let"], ["we", "did", "on", "let"], ["said", "me", "we", "and"], ["are", "be", "did", "and"], ["she", "he", "on", "and"], ["said", "be", "on", "got"], ["are", "he", "we", "got"], ["she", "me", "did", "got"], ["said", "he", "did", "get"], ["are", "me", "on", "get"], ["she", "be", "we", "get"], ["and", "got", "get", "let"]]}, {"num": 4, "name": "Orange", "hex": "#FCAF20", "textDark": "#926613", "panelTint": "#FFF7E9", "sounds": "u, k, b, j, p", "trickyWords": ["were", "has", "look", "one", "said", "are", "me"], "decodableWords": ["kid", "up", "must", "but", "help", "jump"], "cards": [["were", "has", "look", "jump"], ["one", "said", "are", "jump"], ["me", "kid", "up", "jump"], ["were", "one", "me", "must"], ["has", "said", "kid", "must"], ["look", "are", "up", "must"], ["were", "said", "up", "but"], ["has", "are", "me", "but"], ["look", "one", "kid", "but"], ["were", "are", "kid", "help"], ["has", "one", "up", "help"], ["look", "said", "me", "help"], ["must", "but", "help", "jump"]]}, {"num": 5, "name": "Purple", "hex": "#A047E2", "textDark": "#5D2983", "panelTint": "#F6EDFC", "sounds": "u, k, b, j, p", "trickyWords": ["his", "her", "were", "there", "them", "one", "are"], "decodableWords": ["from", "just", "must", "but", "help", "jump"], "cards": [["his", "her", "were", "jump"], ["there", "them", "one", "jump"], ["are", "from", "just", "jump"], ["his", "there", "are", "must"], ["her", "them", "from", "must"], ["were", "one", "just", "must"], ["his", "them", "just", "but"], ["her", "one", "are", "but"], ["were", "there", "from", "but"], ["his", "one", "from", "help"], ["her", "there", "just", "help"], ["were", "them", "are", "help"], ["must", "but", "help", "jump"]]}, {"num": 6, "name": "Grey", "hex": "#989898", "textDark": "#585858", "panelTint": "#F5F5F5", "sounds": "w, ll, ss, ff", "trickyWords": ["have", "of", "here", "with", "her", "there"], "decodableWords": ["will", "well", "off", "still", "tell", "went", "back"], "cards": [["have", "of", "here", "back"], ["with", "her", "there", "back"], ["will", "well", "off", "back"], ["have", "with", "will", "still"], ["of", "her", "well", "still"], ["here", "there", "off", "still"], ["have", "her", "off", "tell"], ["of", "there", "will", "tell"], ["here", "with", "well", "tell"], ["have", "there", "well", "went"], ["of", "with", "off", "went"], ["here", "her", "will", "went"], ["still", "tell", "went", "back"]]}, {"num": 7, "name": "Brown", "hex": "#985100", "textDark": "#582F00", "panelTint": "#F5EEE6", "sounds": "sh, ee, ck", "trickyWords": ["all", "tall", "call", "ball", "little", "them"], "decodableWords": ["see", "been", "shop", "sleep", "tree", "keep", "need"], "cards": [["all", "tall", "call", "need"], ["ball", "little", "them", "need"], ["see", "been", "shop", "need"], ["all", "ball", "see", "sleep"], ["tall", "little", "been", "sleep"], ["call", "them", "shop", "sleep"], ["all", "little", "shop", "tree"], ["tall", "them", "see", "tree"], ["call", "ball", "been", "tree"], ["all", "them", "been", "keep"], ["tall", "ball", "shop", "keep"], ["call", "little", "see", "keep"], ["sleep", "tree", "keep", "need"]]}, {"num": 8, "name": "Crimson", "hex": "#D31F46", "textDark": "#7A1229", "panelTint": "#FBE9EC", "sounds": "ch, sh, qu", "trickyWords": ["go", "no", "so", "this", "then", "they"], "decodableWords": ["much", "such", "cheek", "went", "fish", "quick", "quit"], "cards": [["go", "no", "so", "quit"], ["this", "then", "they", "quit"], ["much", "such", "cheek", "quit"], ["go", "this", "much", "went"], ["no", "then", "such", "went"], ["so", "they", "cheek", "went"], ["go", "then", "cheek", "fish"], ["no", "they", "much", "fish"], ["so", "this", "such", "fish"], ["go", "they", "such", "quick"], ["no", "this", "cheek", "quick"], ["so", "then", "much", "quick"], ["went", "fish", "quick", "quit"]]}, {"num": 9, "name": "Blue", "hex": "#0070C0", "textDark": "#00416F", "panelTint": "#E6F1F9", "sounds": "ch, sh, qu", "trickyWords": ["put", "as", "do", "like", "very", "here"], "decodableWords": ["much", "such", "next", "yet", "went", "quick", "quit"], "cards": [["put", "as", "do", "quit"], ["like", "very", "here", "quit"], ["much", "such", "next", "quit"], ["put", "like", "much", "yet"], ["as", "very", "such", "yet"], ["do", "here", "next", "yet"], ["put", "very", "next", "went"], ["as", "here", "much", "went"], ["do", "like", "such", "went"], ["put", "here", "such", "quick"], ["as", "like", "next", "quick"], ["do", "very", "much", "quick"], ["yet", "went", "quick", "quit"]]}, {"num": 10, "name": "Lime", "hex": "#7CED01", "textDark": "#386B00", "panelTint": "#F2FDE6", "sounds": "th, wh", "trickyWords": ["what", "where", "want", "come", "some"], "decodableWords": ["this", "them", "that", "then", "three", "with", "when", "which"], "cards": [["what", "where", "want", "which"], ["come", "some", "this", "which"], ["them", "that", "then", "which"], ["what", "come", "them", "three"], ["where", "some", "that", "three"], ["want", "this", "then", "three"], ["what", "some", "then", "with"], ["where", "this", "them", "with"], ["want", "come", "that", "with"], ["what", "this", "that", "when"], ["where", "come", "then", "when"], ["want", "some", "them", "when"], ["three", "with", "when", "which"]]}, {"num": 11, "name": "Pink", "hex": "#F7AAE0", "textDark": "#6F4C65", "panelTint": "#FEF6FC", "sounds": "oo, oy, ay", "trickyWords": ["down", "out", "for", "or", "where"], "decodableWords": ["too", "room", "book", "took", "good", "king", "say", "away"], "cards": [["down", "out", "for", "away"], ["or", "where", "too", "away"], ["room", "book", "took", "away"], ["down", "or", "room", "good"], ["out", "where", "book", "good"], ["for", "too", "took", "good"], ["down", "where", "took", "king"], ["out", "too", "room", "king"], ["for", "or", "book", "king"], ["down", "too", "book", "say"], ["out", "or", "took", "say"], ["for", "where", "room", "say"], ["good", "king", "say", "away"]]}, {"num": 12, "name": "Gold", "hex": "#CA8A00", "textDark": "#755000", "panelTint": "#FAF3E6", "sounds": "oo, oy, ay", "trickyWords": ["should", "would", "for", "could", "where"], "decodableWords": ["this", "think", "say", "took", "good", "long", "play", "day"], "cards": [["should", "would", "for", "day"], ["could", "where", "this", "day"], ["think", "say", "took", "day"], ["should", "could", "think", "good"], ["would", "where", "say", "good"], ["for", "this", "took", "good"], ["should", "where", "took", "long"], ["would", "this", "think", "long"], ["for", "could", "say", "long"], ["should", "this", "say", "play"], ["would", "could", "took", "play"], ["for", "where", "think", "play"], ["good", "long", "play", "day"]]}];
+
+let state = null;
+let timerHandle = null;
+let sideLayout = true;
+
+// ---------- sound engine (Web Audio API, no audio files needed) ----------
+let audioCtx = null;
+let soundOn = true;
+
+function getCtx(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function tone(freq, startTime, duration, type, gainPeak){
+  const ctx = getCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(gainPeak || 0.18, startTime + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.03);
+}
+
+function playCorrectSound(){
+  if(!soundOn) return;
+  const t = getCtx().currentTime;
+  tone(523.25, t, 0.14, 'triangle', 0.22);        // C5
+  tone(783.99, t + 0.09, 0.20, 'triangle', 0.22); // G5
+}
+
+function playWrongSound(){
+  if(!soundOn) return;
+  const t = getCtx().currentTime;
+  tone(190, t, 0.22, 'square', 0.10);
+}
+
+function playCompleteSound(){
+  if(!soundOn) return;
+  const t = getCtx().currentTime;
+  [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => tone(f, t + i * 0.11, 0.22, 'triangle', 0.2));
+}
+
+function updateSoundBtn(){
+  const btn = document.getElementById('soundBtn');
+  btn.textContent = soundOn ? '🔊 Sound' : '🔇 Muted';
+}
+
+// ---------- read-aloud on hover (Web Speech API, built into the browser) ----------
+let speechOn = true;
+const speechSupported = 'speechSynthesis' in window;
+
+function speakWord(word){
+  if(!speechOn || !speechSupported) return;
+  window.speechSynthesis.cancel(); // interrupt any word still being read
+  const utter = new SpeechSynthesisUtterance(word.toLowerCase());
+  utter.rate = 0.85;
+  utter.pitch = 1.05;
+  window.speechSynthesis.speak(utter);
+}
+
+function updateSpeechBtn(){
+  const btn = document.getElementById('speechBtn');
+  if(!speechSupported){
+    btn.textContent = '🔇 Not supported';
+    btn.disabled = true;
+    return;
+  }
+  btn.textContent = speechOn ? '🗣️ Read words' : '🗣️ Off';
+}
+
+const picker = document.getElementById('picker');
+const gameEl = document.getElementById('game');
+const endEl = document.getElementById('endScreen');
+const topLinks = document.getElementById('topLinks');
+
+function buildPicker(){
+  const grid = document.getElementById('setGrid');
+  grid.innerHTML = '';
+  SETS.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'set-card';
+    btn.style.background = `linear-gradient(160deg, ${s.hex}, ${shade(s.hex, -18)})`;
+    btn.innerHTML = `
+      <span class="num">Set ${s.num}</span>
+      <span class="label">${s.name}</span>
+      <span class="preview">${s.trickyWords.slice(0,3).join(' &middot; ')}${s.trickyWords.length > 3 ? ' &hellip;' : ''}</span>
+    `;
+    btn.addEventListener('click', () => startGame(s));
+
+    const link = document.createElement('button');
+    link.className = 'wordlist-link';
+    link.textContent = 'View full word list';
+    link.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openWordListModal(s);
+    });
+    btn.appendChild(link);
+
+    grid.appendChild(btn);
+  });
+}
+
+function openWordListModal(s){
+  document.documentElement.style.setProperty('--accent', s.hex);
+  document.documentElement.style.setProperty('--accent-dark', s.textDark);
+  document.getElementById('modalTitle').textContent = `Set ${s.num} (${s.name}) word list`;
+  document.getElementById('modalTrickyTitle').textContent = `Tricky words (${s.trickyWords.length})`;
+  document.getElementById('modalTrickyList').innerHTML =
+    s.trickyWords.map(w => `<div style="color:${s.textDark};">${w}</div>`).join('');
+  document.getElementById('modalDecodableList').innerHTML =
+    s.decodableWords.map(w => `<div>${w}</div>`).join('');
+  const playBtn = document.getElementById('modalPlayBtn');
+  playBtn.onclick = () => { closeWordListModal(); startGame(s); };
+  document.getElementById('wordListModal').style.display = 'flex';
+}
+
+function closeWordListModal(){
+  document.getElementById('wordListModal').style.display = 'none';
+}
+
+document.getElementById('modalClose').addEventListener('click', closeWordListModal);
+document.getElementById('wordListModal').addEventListener('click', (e) => {
+  if(e.target.id === 'wordListModal') closeWordListModal();
+});
+
+function shade(hex, percent){
+  const n = parseInt(hex.replace('#',''), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const amt = Math.round(2.55 * percent);
+  r = Math.min(255, Math.max(0, r + amt));
+  g = Math.min(255, Math.max(0, g + amt));
+  b = Math.min(255, Math.max(0, b + amt));
+  return `rgb(${r},${g},${b})`;
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// deterministic-ish small rotation/size variance per word so cards don't look robotic
+function hashStr(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) | 0; }
+  return Math.abs(h);
+}
+
+function startGame(setData){
+  const order = shuffle(setData.cards);
+  state = {
+    set: setData,
+    yourCard: order[0],
+    tableCard: order[1],
+    pile: order.slice(2),
+    totalCards: order.length,
+    mistakes: 0,
+    startTime: Date.now(),
+    finished: false,
+  };
+  document.documentElement.style.setProperty('--accent', setData.hex);
+  document.documentElement.style.setProperty('--accent-dark', setData.textDark);
+  document.documentElement.style.setProperty('--panel', setData.panelTint);
+
+  picker.style.display = 'none';
+  endEl.style.display = 'none';
+  gameEl.style.display = 'block';
+  topLinks.style.display = 'block';
+  applyLayout();
+
+  render();
+  if(timerHandle) clearInterval(timerHandle);
+  timerHandle = setInterval(updateTimer, 250);
+}
+
+function render(){
+  renderCard('tableCard', state.tableCard, false);
+  renderCard('yourCard', state.yourCard, true);
+  document.getElementById('leftStat').textContent = state.pile.length + 1;
+  document.getElementById('missStat').textContent = state.mistakes;
+}
+
+function renderCard(elId, words, clickable){
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  words.forEach(word => {
+    const cell = document.createElement('div');
+    cell.className = 'word-cell';
+    const isTricky = state.set.trickyWords.includes(word);
+    const span = document.createElement('span');
+    span.className = 'word ' + (isTricky ? 'tricky' : 'decodable');
+    span.textContent = word;
+
+    const h = hashStr(word + elId);
+    const rot = ((h % 17) - 8);
+    const sizeVariance = 0.85 + ((h % 30) / 100);
+    span.style.transform = `rotate(${rot}deg)`;
+    span.dataset.variance = sizeVariance;
+
+    cell.appendChild(span);
+    cell.addEventListener('mouseenter', () => speakWord(word));
+    if(clickable){
+      cell.addEventListener('click', () => handleGuess(word, cell));
+    }
+    el.appendChild(cell);
+  });
+  // fit each word to its cell using real measurements (not a guessed formula),
+  // so it can never get clipped regardless of screen size or layout mode
+  afterFontsReady(() => refitWordsIn(el));
+}
+
+function nextFrame(cb){
+  requestAnimationFrame(() => requestAnimationFrame(cb));
+}
+
+function afterFontsReady(cb){
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(() => nextFrame(cb));
+  } else {
+    nextFrame(cb);
+  }
+}
+
+// safety net: if the word font finishes loading late (slow connection) after
+// cards are already on screen, re-fit once more so nothing is left mis-sized
+if(document.fonts && document.fonts.ready){
+  document.fonts.ready.then(() => { if(state) nextFrame(refitAllWords); });
+}
+
+function fitWordToCell(cell, span){
+  const variance = parseFloat(span.dataset.variance || '1');
+  const maxWidth = cell.clientWidth - 10;
+  const maxHeight = cell.clientHeight - 10;
+  let size = cell.clientHeight * 0.62 * variance;
+  span.style.fontSize = size + 'px';
+  for(let i = 0; i < 40; i++){
+    const rect = span.getBoundingClientRect();
+    if(rect.width <= maxWidth && rect.height <= maxHeight) break;
+    size *= 0.93;
+    span.style.fontSize = size + 'px';
+  }
+}
+
+function refitWordsIn(container){
+  container.querySelectorAll('.word-cell').forEach(cell => {
+    const span = cell.querySelector('.word');
+    if(span) fitWordToCell(cell, span);
+  });
+}
+
+function refitAllWords(){
+  refitWordsIn(document.getElementById('tableCard'));
+  refitWordsIn(document.getElementById('yourCard'));
+}
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if(state && !state.finished) refitAllWords();
+  }, 150);
+});
+
+function handleGuess(word, cellEl){
+  if(state.finished) return;
+  speakWord(word);
+  if(state.tableCard.includes(word)){
+    cellEl.classList.add('correct');
+    playCorrectSound();
+    setTimeout(() => advance(), 160);
+  } else {
+    state.mistakes++;
+    cellEl.classList.add('wrong');
+    playWrongSound();
+    setTimeout(() => cellEl.classList.remove('wrong'), 350);
+    document.getElementById('missStat').textContent = state.mistakes;
+  }
+}
+
+function advance(){
+  state.yourCard = state.tableCard;
+  if(state.pile.length === 0){
+    finishGame();
+    return;
+  }
+  state.tableCard = state.pile.shift();
+  render();
+}
+
+function finishGame(){
+  state.finished = true;
+  clearInterval(timerHandle);
+  playCompleteSound();
+  const secs = Math.floor((Date.now() - state.startTime) / 1000);
+  document.getElementById('endTime').textContent = formatTime(secs);
+  document.getElementById('endMiss').textContent = state.mistakes;
+  const msg = state.mistakes === 0
+    ? `Perfect run through Set ${state.set.num}, no mistakes!`
+    : `You finished Set ${state.set.num}!`;
+  document.getElementById('endMsg').textContent = msg;
+  gameEl.style.display = 'none';
+  endEl.style.display = 'block';
+}
+
+function updateTimer(){
+  if(!state || state.finished) return;
+  const secs = Math.floor((Date.now() - state.startTime) / 1000);
+  document.getElementById('timeStat').textContent = formatTime(secs);
+}
+
+function formatTime(secs){
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+document.getElementById('backBtn').addEventListener('click', () => {
+  clearInterval(timerHandle);
+  gameEl.style.display = 'none';
+  endEl.style.display = 'none';
+  topLinks.style.display = 'none';
+  picker.style.display = 'block';
+});
+document.getElementById('playAgainBtn').addEventListener('click', () => startGame(state.set));
+document.getElementById('chooseAnotherBtn').addEventListener('click', () => {
+  endEl.style.display = 'none';
+  topLinks.style.display = 'none';
+  picker.style.display = 'block';
+});
+document.getElementById('layoutBtn').addEventListener('click', () => {
+  sideLayout = !sideLayout;
+  applyLayout();
+});
+function applyLayout(){
+  const board = document.getElementById('board');
+  const gameEl2 = document.getElementById('game');
+  const btn = document.getElementById('layoutBtn');
+  if(sideLayout){
+    board.classList.add('side-by-side');
+    gameEl2.classList.add('side-layout');
+    btn.textContent = '⬌ Side by side';
+  } else {
+    board.classList.remove('side-by-side');
+    gameEl2.classList.remove('side-layout');
+    btn.textContent = '⬍ Stacked';
+  }
+  if(state) afterFontsReady(() => refitAllWords());
+}
+document.getElementById('soundBtn').addEventListener('click', () => {
+  soundOn = !soundOn;
+  updateSoundBtn();
+  if(soundOn) playCorrectSound();
+});
+document.getElementById('speechBtn').addEventListener('click', () => {
+  if(!speechSupported) return;
+  speechOn = !speechOn;
+  updateSpeechBtn();
+  if(speechOn) speakWord('sound on');
+  else window.speechSynthesis.cancel();
+});
+updateSoundBtn();
+updateSpeechBtn();
+
+buildPicker();
+</script>
+</body>
+</html>
